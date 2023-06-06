@@ -6,6 +6,7 @@
 \usage{
 boxplotcluster(
   x,
+  calc.type = "columns",
   aggl.meth = "ward.D2",
   part = NULL,
   cex.dndr.lab = 0.75,
@@ -15,6 +16,8 @@ boxplotcluster(
 }
 \arguments{
 \item{x}{A dataframe or matrix where each column represents a data series to be clustered.}
+
+\item{calc.type}{A string specifying the units to be clustered (either "columns" or "rows"; the former is the default).}
 
 \item{aggl.meth}{A string specifying the agglomeration method to be used in hierarchical
 clustering. Defaults to "ward.D2". For other methods see \code{\link[stats]{hclust}}.}
@@ -31,21 +34,19 @@ silhouette plot. Defaults to 0.75.}
 \item{oneplot}{TRUE (default) or FALSE if the user wants or does not want the plots to be visualized
 in a single window.}
 }
-\value{
-A dist object representing the distance matrix used for clustering.
-}
 \description{
 The function \code{boxplotcluster} implements a special clustering method
 based on boxplot statistics. Following Arroyo-Maté-Roque (2006), the function calculates
-the distance between columns of the dataset using the generalized Minkowski metric as described
+the distance between rows or columns of the dataset using the generalized Minkowski metric as described
 by Ichino and Yaguchi (1994). The distance measure gives more weight to differences between
 quartiles than to differences between extremes, making it less sensitive to outliers. Further,
 the function calculates the silhouette width for different numbers of clusters (Rousseeuw 1987)
 and selects the number of clusters that maximizes the average silhouette width
-(unless a specific number of clusters is provided by the user).
+(unless a specific number of clusters is provided by the user).\cr
+Visit this \href{https://drive.google.com/file/d/1Qb9r8amiSa1OMmCx3ngpeXAGT7kebInq/view?usp=share_link}{LINK} to access the package's vignette.\cr
 }
 \details{
-The function first calculates the pairwise distance between each column of the input
+The function first calculates the pairwise distance between each row or column of the input
 dataset using the Ichino-Yaguchi dissimilarity measure (equations 7 and 8 in Arroyo-Maté-Roque (2006)).
 The distance between A and B is defined as:\cr
 
@@ -86,8 +87,19 @@ boxplot in the previous plot),\cr
 
 The silhouette plot is obtained from the \code{silhouette()} function out from the \code{cluster} package.
 For a detailed description of the silhouette plot, its rationale, and its interpretation, see Rousseeuw 1987.
+
+The function returns a list storing the following components \itemize{
+ \item{distance.matrix: }{distance matrix reporting the distance values.}
+ \item{dataset.w.cluster.assignment: }{a copy of the input dataset; if the rows are clustered, a new column is added
+ which stored the cluster membership; if columns are clustered, a new row is added at the very end of the dataset
+ to store the cluster membership.}
+ \item{avr.silh.width.by.n.of.clusters: }{average silhouette width by number of clusters.}
+ \item{partition.silh.data: }{silhouette data for the selected partition.}
+}
 }
 \examples{
+
+  # EXAMPLE 1
   # Create a toy dataset
   df <- data.frame(
 a = rnorm(30, mean = 30, sd = 5),
@@ -112,6 +124,30 @@ result <- boxplotcluster(df)
 
 # Same as above, but selecting a 4-cluster solution
 result <- boxplotcluster(df, part=4)
+
+# Same as above, but the rows are clustered
+result <- boxplotcluster(df, calc.type="rows", part=4)
+
+
+# EXAMPLE 2
+# Create a toy dataset representing archaeological stone flake length (cm) by raw material
+
+df <- data.frame(
+Basalt = c(7.0, 7.0, 7.7, 8.2, 10.3, 10.3, 10.3, 10.8, 11.0, 13.0, 13.9, 14.6, 1.0),
+Chert = c(2.9, 4.8, 5.3, 5.8, 5.8, 6.2, 6.5, 7.7, 7.7, 7.9, 8.9, 9.6, 2.0),
+Obsidian = c(2.2, 2.4, 3.1, 4.3, 5.0, 5.5, 5.8, 6.0, 6.2, 7.2, 7.4, 7.7, 2.0),
+Quartzite = c(5.5, 5.5, 7.0, 7.4, 7.7, 7.9, 8.6, 8.9, 9.4, 9.6, 10.6, 10.8, 1.0),
+Granite = c(4.0, 4.5, 6.0, 6.8, 7.0, 7.8, 8.1, 8.4, 9.0, 10.0, 10.5, 11.0, 1.0),
+Sandstone = c(3.0, 3.2, 4.0, 4.5, 4.9, 5.2, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 1.0),
+Limestone = c(3.5, 4.0, 4.8, 5.2, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 1.5),
+Slate = c(2.0, 2.4, 3.0, 3.6, 4.0, 4.4, 5.0, 5.6, 6.0, 6.4, 7.0, 7.6, 1.2)
+)
+
+# Run the function to cluster the columns (default); cluster solution is
+# selected by the iterative method (default)
+
+boxplotcluster(df)
+
 
 }
 \references{
