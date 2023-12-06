@@ -10,21 +10,29 @@
 #' (unless a specific number of clusters is provided by the user).\cr
 #' Visit this \href{https://drive.google.com/file/d/1Qb9r8amiSa1OMmCx3ngpeXAGT7kebInq/view?usp=share_link}{LINK} to access the package's vignette.\cr
 #'
-#' @param x A dataframe or matrix where each column represents a data series to be clustered.
-#' @param calc.type A string specifying the units to be clustered (either "columns" or "rows"; the former is the default).
+#' @param x A dataframe representing the input dataset (see below and the \code{Details} section).
+#' @param target.var A character vector specifying the name of the numerical variable in the input dataset that
+#' will be used for analysis. If the input dataset is in \code{wide} format, this can be left as default (\code{NULL}). If the dataset is
+#' in \code{long} format, this parameter has to indicate the variable containing the data values that will
+#' be grouped by the different levels of the variable fed via the \code{group.var} parameter.
+#' @param group.var A character vector specifying the grouping variable. It can be left as default (\code{NULL}) if the
+#' input dataset is in \code{wide} format.
+#' @param calc.type A string specifying the units to be clustered if the input dataset is in wide format (either \code{columns} or \code{rows}; the former is the default).
 #' @param aggl.meth A string specifying the agglomeration method to be used in hierarchical
 #' clustering. Defaults to "ward.D2". For other methods see \code{\link[stats]{hclust}}.
 #' @param part An optional integer specifying the desired number of clusters. If not provided,
-#' the function will select the number of clusters that maximizes the average silhouette width.
+#' the function selects the number of clusters that maximises the average silhouette width.
+#' @param silh.col A logical value, which takes \code{TRUE} (default) or \code{FALSE} if the user wants to give colour to the
+#' silhouette plot reflecting the cluster partition.
 #' @param cex.dndr.lab A numeric specifying the character expansion factor for the labels in the
 #' dendrogram plot. Defaults to 0.75.
 #' @param cex.sil.lab A numeric specifying the character expansion factor for the labels in the
 #' silhouette plot. Defaults to 0.75.
-#' @param oneplot TRUE (default) or FALSE if the user wants or does not want the plots to be visualized
+#' @param oneplot A logical value, which takes \code{TRUE} (default) or \code{FALSE} if the user wants or does not want the plots to be visualised
 #' in a single window.
 #'
-#' @details The function first calculates the pairwise distance between each row or column of the input
-#' dataset using the Ichino-Yaguchi dissimilarity measure (equations 7 and 8 in Arroyo-Maté-Roque (2006)).
+#' @details The function first calculates the pairwise distance between each unit of the input dataset
+#'using the Ichino-Yaguchi dissimilarity measure (equations 7 and 8 in Arroyo-Maté-Roque (2006)).
 #' The distance between A and B is defined as:\cr
 #'
 #' \eqn{(0.5 * (abs(m1 - m2) + 2 * abs(q1 - q2) + 2 * abs(Me1 - Me2) + 2 * abs(Q1 - Q2) + abs(M1 - M2))) /4}\cr
@@ -42,9 +50,9 @@
 #'   Me1 <- median(A)\cr
 #'   Me2 <- median(B)\cr
 #'
-#' The distance matrix is then used to perform hierarchical clustering. Also, the function calculates the
+#' The distance matrix is then used to perform a hierarchical clustering. Also, the function calculates the
 #' silhouette width for different numbers of clusters and selects the number of clusters
-#' that maximizes the average silhouette width (unless a specific number of clusters is provided by the user).\cr
+#' that maximises the average silhouette width (unless a specific number of clusters is provided by the user).\cr
 #'
 #' The silhouette method allows to measure how 'good' is the selected cluster solution. If the parameter \code{part}
 #' is left empty (default), an optimal cluster solution is obtained. The optimal partition is selected via an iterative
@@ -54,42 +62,55 @@
 #' scatterplot in which the cluster solution (x-axis) is plotted against the average silhouette width (y-axis).
 #' A black dot represents the partition selected either by the iterative procedure or by the user.\cr
 #'
-#' In summary, the function generates a series of plots to visualize the results:\cr
+#' In summary, the function generates a series of plots to visualise the results:\cr
 #'
 #' (a) boxplots colored by cluster membership,\cr
 #' (b) a dendrogram (where clusters are indicated by rectangles whose color is consistent with the color assigned to the
 #' boxplot in the previous plot),\cr
-#' (c) a silhouette plot, and\cr
+#' (c) a silhouette plot (with optional by-cluster colours), and\cr
 #' (d) a plot of the average silhouette width vs. the number of clusters.\cr
 #'
-#' The silhouette plot is obtained from the \code{silhouette()} function out from the \code{cluster} package.
+#' The silhouette plot is obtained via the \code{silhouette()} function out from the \code{cluster} package.
 #' For a detailed description of the silhouette plot, its rationale, and its interpretation, see Rousseeuw 1987.
 #'
-#' The function returns a list storing the following components \itemize{
-##'  \item{distance.matrix: }{distance matrix reporting the distance values.}
-##'  \item{dataset.w.cluster.assignment: }{a copy of the input dataset; if the rows are clustered, a new column is added
-##'  which stored the cluster membership; if columns are clustered, a new row is added at the very end of the dataset
-##'  to store the cluster membership.}
-##'  \item{avr.silh.width.by.n.of.clusters: }{average silhouette width by number of clusters.}
-##'  \item{partition.silh.data: }{silhouette data for the selected partition.}
+#' Input dataset format:\cr
+#' When the dataset is in \code{wide} format, each row corresponds to a distinct unit, and each column corresponds
+#' to a different variable. In this format, it is typically assumed that all units have the same number of observations.
+#' The element representing the units (either rows or columns) will be clustered.\cr
+#'
+#' When the dataset is in \code{long} format, it consists of rows representing individual observations. One column indicates
+#' the variable name (grouping variable) and another column contains the measurements values, or viceversa. If the input dataset
+#' comes in this format, the units to be clustered are created by grouping the observations (i.e., rows of the
+#' dataframe) by \code{group.var}. If the input dataset is in \code{long} format, groups can feature a different number of observations.\cr
+#'
+#' For actual examples of both formats, see the \code{Examples} section below.
+#'
+#'
+#'@return The function returns a list storing the following components
+#' \itemize{
+##'  \item{\code{distance.matrix:}} distance matrix reporting the distance values.
+##'  \item{\code{units.by.cluster:}} a list of the input dataset's units, grouped by cluster membership.
+##'  \item{\code{avr.silh.width.by.n.of.clusters:}} average silhouette width by number of clusters.
+##'  \item{\code{partition.silh.data:}} silhouette data for the selected partition.
 ##' }
-#'
-#' @references Rousseeuw, P J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis,
-#' Journal of Computational and Applied Mathematics 20, 53-65.
-#'
-#' @references Ichino, M., & Yaguchi, H. (1994). Generalized Minkowski Metrics for Mixed
-#' Feature-Type Data Analysis. IEEE Transactions on Systems, Man, and Cybernetics, 24(4), 698-708.
 #'
 #' @references Arroyo, J., Maté, C., & Roque, A. M-S. (2006). Hierarchical Clustering for Boxplot Variables.
 #' In Studies in Classification, Data Analysis, and Knowledge Organization (pp. 59–66).
 #' Springer Berlin Heidelberg.
 #'
+#' @references Ichino, M., & Yaguchi, H. (1994). Generalized Minkowski Metrics for Mixed
+#' Feature-Type Data Analysis. IEEE Transactions on Systems, Man, and Cybernetics, 24(4), 698-708.
+#'
+#' @references Rousseeuw, P J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis,
+#' Journal of Computational and Applied Mathematics 20, 53-65.
+#'
 #'
 #' @examples
 #'
-#'   # EXAMPLE 1
-#'   # Create a toy dataset
-#'   df <- data.frame(
+#' ## EXAMPLE 1
+#'
+#' # Create a toy dataset in WIDE format
+#' df <- data.frame(
 #' a = rnorm(30, mean = 30, sd = 5),
 #' b = rnorm(30, mean = 40, sd = 5),
 #' c = rnorm(30, mean = 20, sd = 5),
@@ -117,8 +138,10 @@
 #' result <- boxplotcluster(df, calc.type="rows", part=4)
 #'
 #'
-#' # EXAMPLE 2
-#' # Create a toy dataset representing archaeological stone flake length (cm) by raw material
+#'
+#' ## EXAMPLE 2
+#' # Create a toy dataset in WIDE format, representing archaeological stone
+#' # flake length (cm) by raw material
 #'
 #' df <- data.frame(
 #' Basalt = c(7.0, 7.0, 7.7, 8.2, 10.3, 10.3, 10.3, 10.8, 11.0, 13.0, 13.9, 14.6, 1.0),
@@ -134,7 +157,25 @@
 #' # Run the function to cluster the columns (default); cluster solution is
 #' # selected by the iterative method (default)
 #'
-#' boxplotcluster(df)
+#' result <- boxplotcluster(df)
+#'
+#'
+#'
+#' ## EXAMPLE 3
+#' #  Create a toy dataset in LONG format
+#'
+#' n_units <- 20
+#' n_groups <- 10
+#' measurements_per_group <- 4
+#'
+#' long_data <- data.frame(
+#' SubjectID = rep(paste0("Unit", 1:n_units), each = n_groups * measurements_per_group),
+#' Grouping_var = rep(rep(paste0("M", 1:n_groups), each = measurements_per_group), n_units),
+#' Value = runif(n_units * n_groups * measurements_per_group))
+#'
+#' #  Run the analysis, specifying the target variable and the grouping variable,
+#' # and selecting a 3-cluster solution
+#' result <- boxplotcluster(long_data, target.var = "Value", group.var = "Grouping_var", part=3)
 #'
 #'
 #' @importFrom grDevices rainbow
@@ -146,7 +187,8 @@
 #' @seealso \code{\link[cluster]{silhouette}}, \code{\link[stats]{hclust}}
 #'
 #'
-boxplotcluster <- function(x, calc.type = "columns", aggl.meth = "ward.D2", part = NULL, cex.dndr.lab = 0.75, cex.sil.lab = 0.75, oneplot=TRUE) {
+boxplotcluster <- function(x, target.var = NULL, group.var = NULL, calc.type = "columns", aggl.meth = "ward.D2", part = NULL, silh.col = TRUE, cex.dndr.lab = 0.75, cex.sil.lab = 0.75, oneplot=TRUE) {
+
   # Save current par settings
   oldpar <- par(no.readonly = TRUE)
   # Ensure settings are restored when function exits
@@ -157,37 +199,60 @@ boxplotcluster <- function(x, calc.type = "columns", aggl.meth = "ward.D2", part
     layout(m)
   }
 
-  # Transpose the matrix so rows become columns (and vice versa)
-  if (calc.type == "rows") {
-    x <- t(x)
+  # Convert data to a list of groups
+  if (!is.null(target.var) && !is.null(group.var)) {
+    # Long format: Split the data by group.var
+    if (!target.var %in% names(x) || !group.var %in% names(x)) {
+      stop("target.var or group.var not found in the dataframe")
+    }
+    groups <- split(x[[target.var]], x[[group.var]])
+  } else {
+    # Original format: Each column or row is treated as a group
+    if (calc.type == "rows") {
+      x <- t(x)
+    }
+    groups <- as.list(as.data.frame(x))
   }
 
-  # Function to calculate the distance between two columns of x
-  calc_dist <- function(s1, s2) {
-    m1 <- min(x[, s1])
-    m2 <- min(x[, s2])
-    q1 <- quantile(x[, s1], probs = 0.25)
-    q2 <- quantile(x[, s2], probs = 0.25)
-    Q1 <- quantile(x[, s1], probs = 0.75)
-    Q2 <- quantile(x[, s2], probs = 0.75)
-    M1 <- max(x[, s1])
-    M2 <- max(x[, s2])
-    Me1 <- median(x[, s1])
-    Me2 <- median(x[, s2])
+  # Define the function for distance calculation based on box-plot statistics
+  calc_dist <- function(group1, group2) {
+    m1 <- min(group1)
+    m2 <- min(group2)
+    q1 <- quantile(group1, probs = 0.25)
+    q2 <- quantile(group2, probs = 0.25)
+    Q1 <- quantile(group1, probs = 0.75)
+    Q2 <- quantile(group2, probs = 0.75)
+    M1 <- max(group1)
+    M2 <- max(group2)
+    Me1 <- median(group1)
+    Me2 <- median(group2)
 
     (0.5 * (abs(m1 - m2) +
               2 * abs(q1 - q2) +
               2 * abs(Me1 - Me2) +
               2 * abs(Q1 - Q2) +
-              abs(M1 - M2))) /4
+              abs(M1 - M2))) / 4
   }
 
-  # Calculate the distance matrix using the outer function and vectorized calc_dist function
-  d <- outer(1:ncol(x), 1:ncol(x), Vectorize(calc_dist))
+  # Calculate the pairwise distances between groups
+  num_groups <- length(groups)
+  d <- matrix(NA, nrow = num_groups, ncol = num_groups)
+  group_labels <- names(groups)
+  rownames(d) <- colnames(d) <- group_labels
+
+  for (i in 1:num_groups) {
+    for (j in 1:num_groups) {
+      if (i != j) {
+        d[i, j] <- calc_dist(groups[[i]], groups[[j]])
+      } else {
+        d[i, j] <- 0
+      }
+    }
+  }
 
   # Convert the distance matrix to a proper labeled matrix
-  d <- as.matrix(d, labels = TRUE)
-  colnames(d) <- rownames(d) <- colnames(x)
+  # d<- as.matrix(d, labels = TRUE)
+  # colnames(d) <- rownames(d) <- colnames(x)
 
   # Convert the distance matrix to a dist object
   d <- as.dist(d)
@@ -196,7 +261,7 @@ boxplotcluster <- function(x, calc.type = "columns", aggl.meth = "ward.D2", part
   fit <- hclust(d, method = aggl.meth)
 
   # Determine the maximum number of clusters
-  max.ncl <- ncol(x) - 1
+  max.ncl <- num_groups - 1
 
   # Initialize a vector to store the silhouette width values
   sil.width.val <- numeric(max.ncl - 1)
@@ -219,27 +284,20 @@ boxplotcluster <- function(x, calc.type = "columns", aggl.meth = "ward.D2", part
 
   # Calculate the final silhouette data for the selected number of clusters
   final.sil.data <- cluster::silhouette(cutree(fit, k = select.clst.num), d)
-  row.names(final.sil.data) <- colnames(x)
+  row.names(final.sil.data) <- group_labels
 
   # Get cluster assignments
   cluster_assignments <- cutree(fit, k = select.clst.num)
 
-  # Generate colors for each cluster
-  cluster_colors <- rainbow(length(unique(cluster_assignments)))[cluster_assignments]
+  # Generate colors for each individual boxplot, with colour defined by cluster
+  cluster_colors <- rainbow(length(unique(cluster_assignments)), alpha = 1)[cluster_assignments]
 
-  # If the input dataframe (regardless of whether transposed or not) has no column labels,
-  # the column numbers in the order appearing in the cluster dendrogram will be used as labels
-  if(is.null(colnames(x)) == TRUE) {
-    labels.to.use <- fit$order
-  } else {
-    # otherwise, the dataframe's column labels, in the order appearing in the cluster dendrogram, will be used
-    # as labels
-    labels.to.use <- colnames(x)[fit$order]
-  }
+  #create a vector of unit names ordered on the basis of how they appear in the cluster dendrogram
+  labels.to.use <- group_labels[fit$order]
 
   # Create boxplot with colors according to the cluster assignment
-  # on the x-axis, the boxplot will be given the labels as defined in the previous if/else condition
-  boxplot(x[,fit$order], col = cluster_colors[fit$order], names=labels.to.use, main="Boxplots colored by cluster membership", cex.main=0.90, cex.axis=0.70)
+  # on the x-axis, the boxplot will be given the ordered labels
+  boxplot(groups[fit$order], col = cluster_colors[fit$order], names=labels.to.use, main="Boxplots colored by cluster membership", cex.main=0.90, cex.axis=0.70)
 
   # Plot the dendrogram
   graphics::plot(fit,
@@ -253,12 +311,22 @@ boxplotcluster <- function(x, calc.type = "columns", aggl.meth = "ward.D2", part
   # Add rectangles to the dendrogram to visualize the clusters
   solution <- rect.hclust(fit, k = select.clst.num, border = unique(cluster_colors[fit$order]))
 
+  # Conditonally define the by-cluster colours to be used when
+  # plotting the silhouette plot
+  if(silh.col==TRUE){
+    by.clust.col <- rainbow(length(unique(cluster_assignments)), alpha = 1)
+  } else {
+    by.clust.col <- NULL
+  }
+
   # Plot the silhouette plot
   graphics::plot(final.sil.data,
+                 col=by.clust.col,
                  cex.names = cex.sil.lab,
                  max.strlen = 30,
-                 nmax.lab = ncol(x) + 1,
-                 main = "Silhouette plot")
+                 nmax.lab = num_groups + 1,
+                 main = "Silhouette plot",
+                 cex.main = 0.95)
 
   # Add a vertical line to show the average silhouette width
   abline(v = mean(final.sil.data[, 3]), lty = 2)
@@ -283,24 +351,13 @@ boxplotcluster <- function(x, calc.type = "columns", aggl.meth = "ward.D2", part
   # Add a label to the point with the silhouette width value
   graphics::text(x = select.clst.num, y = sil.res[select.clst.num - 1, 2], labels = round(sil.res[select.clst.num - 1, 2], 3), cex = 0.65, pos = 3, offset = 1.2, srt = 90)
 
-  # Create a copy of the input dataset and create either a new column or a new row to store the cluster membership
-  # for each column/row
-  if (calc.type == "rows") {
-    x.copy <- as.data.frame(t(x))
-    x.copy$cluster_assignments <- cluster_assignments
-  } else {
-    x.copy <- as.data.frame((x))
-    x.copy[nrow(x.copy)+1,] <- round(as.numeric(cluster_assignments,0))
-    rownames(x.copy[nrow(x.copy),]) <- "cluster assignment"
-  }
-
   # Rename the columns of the sil.res dataframe to give
   # more meaningful labels before returning it
   colnames(sil.res)[1] <- "cluster solution"
   colnames(sil.res)[2] <- "average silhouette width"
 
   return(list("distance.matrix"=d,
-              "dataset.w.cluster.assignment"=x.copy,
+              "units.by.cluster"=split(groups, cluster_assignments),
               "avr.silh.width.by.n.of.clusters"=sil.res,
               "partition.silh.data"=final.sil.data))
 }

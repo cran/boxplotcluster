@@ -1,9 +1,9 @@
-# boxplotcluster 0.2:
+# boxplotcluster 0.3:
 
-* Option added for the selection of the units to be clustered (columns or rows);
-* A copy of the input dataset is now returned; information is appended in order to store the rows or columns cluster membership;
-* Info about the silhouette statistics now returned by the function;
-* Minor internal optimisations;
-* Improvements and updates to the help documentation;
-* New example added to the help documentation;
-* Link to the package's vignette added to the help documentation.
+* The function now can take as input a dataset in 'long' format; therefore, units can now feature a different number of
+observations;
+* Parameter 'target.var' and 'group.var' added;
+* Parameter 'silh.col' added to provide the option to give by-cluster colours to the silhouette plot;
+* In the returned values, 'units.by.cluster' replaces the earlier 'dataset.w.cluster.assignment';
+* Example of datasets in 'wide' and 'long' format added to the help documentation;
+* Fixes and improvements content- and layout-wise to the help documentation.
